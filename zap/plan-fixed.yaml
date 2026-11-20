@@ -1,0 +1,44 @@
+# ZAP Automation Framework plan: authenticated spider + active scan of the fixed app.
+# Make the real plan: sed "s/SID_PLACEHOLDER/<sid>/" plan-fixed.yaml > plan-run.yaml
+# Run: docker run ... zaproxy/zap-stable zap.sh -cmd -autorun /zap/wrk/plan-run.yaml
+env:
+  contexts:
+    - name: pocket-notes-fixed
+      urls:
+        - http://host.docker.internal:18402
+      includePaths:
+        - "http://host.docker.internal:18402.*"
+      excludePaths:
+        - ".*/logout.*"          # logging out would end the scan's session
+  parameters:
+    failOnError: true
+    progressToStdout: true
+jobs:
+  - type: replacer               # send the session cookie on every request
+    rules:
+      - description: session cookie
+        matchType: req_header
+        matchString: Cookie
+        replacementString: "sid=SID_PLACEHOLDER"
+  - type: spider
+    parameters:
+      context: pocket-notes-fixed
+      url: http://host.docker.internal:18402/notes
+      maxDuration: 2
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+  - type: activeScan
+    parameters:
+      context: pocket-notes-fixed
+      maxScanDurationInMins: 10
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk/reports
+      reportFile: af-fixed.html
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: /zap/wrk/reports
+      reportFile: af-fixed.json

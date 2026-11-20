@@ -1,0 +1,46 @@
+rules:
+  - id: sql-built-with-template-literal
+    languages: [javascript]
+    severity: HIGH
+    message: >-
+      SQL text built with ${...} interpolation is passed to $DB.prepare(). If any interpolated
+      value comes from a request, this is SQL injection. Use ? placeholders and pass the values to .run(), .get() or .all().
+    patterns:
+      - pattern: $DB.prepare(`...${$X}...`)
+    metadata:
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A05:2025 Injection"
+
+  - id: hardcoded-secret-in-object
+    languages: [javascript]
+    severity: HIGH
+    message: >-
+      "$KEY" looks like a secret written into the source code. Read it from an environment variable
+      or a secret store instead, and rotate the value: it is already in the git history.
+    patterns:
+      - pattern: |
+          { ..., $KEY: "$VALUE", ... }
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i).*(key|secret|token|passw).*
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: .{12,}
+      - focus-metavariable: $VALUE
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+
+  - id: password-in-log-call
+    languages: [javascript]
+    severity: MEDIUM
+    message: A password is passed to a log call. Log the outcome, never the password.
+    patterns:
+      - pattern-either:
+          - pattern: $LOG(..., { ..., password, ... }, ...)
+          - pattern: "$LOG(..., { ..., password: $P, ... }, ...)"
+          - pattern: $LOG(..., req.body, ...)
+      - metavariable-regex:
+          metavariable: $LOG
+          regex: ^(log|console\.\w+|logger\.\w+)$
+    metadata:
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"

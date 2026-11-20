@@ -1,0 +1,16 @@
+# Taint mode: follow request data (sources) into SQL text (sinks) inside one function.
+# Semgrep Community Edition tracks taint within a single function only.
+rules:
+  - id: request-data-into-sql-text
+    mode: taint
+    languages: [javascript]
+    severity: HIGH
+    message: Request data flows into SQL text passed to prepare(). Use ? placeholders.
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: $DB.prepare($SQL)
+          - focus-metavariable: $SQL

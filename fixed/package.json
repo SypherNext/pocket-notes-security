@@ -1,0 +1,19 @@
+{
+  "name": "pocket-notes-fixed",
+  "version": "1.0.0",
+  "description": "Pocket Notes with every flaw from the Security Testing Basics course fixed.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "express-rate-limit": "8.7.3",
+    "helmet": "8.3.0"
+  },
+  "devDependencies": {
+    "supertest": "7.3.1"
+  }
+}

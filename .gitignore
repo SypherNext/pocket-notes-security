@@ -1,0 +1,19 @@
+node_modules/
+.env
+zap/reports/
+
+# Files the lessons generate while you work
+zap/plan-run.yaml
+zap/zap.yaml
+zap/baseline-default.conf
+junit.xml
+semgrep.sarif
+*.log
+
+# Tooling and OS files
+.venv/
+__pycache__/
+dist/
+coverage/
+.DS_Store
+Thumbs.db

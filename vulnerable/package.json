@@ -1,0 +1,18 @@
+{
+  "name": "pocket-notes-vulnerable",
+  "version": "1.0.0",
+  "description": "Deliberately vulnerable practice app for the Security Testing Basics course. Never expose it to a network.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "lodash": "4.17.20"
+  },
+  "devDependencies": {
+    "supertest": "7.3.1"
+  }
+}

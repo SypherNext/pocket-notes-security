@@ -1,0 +1,75 @@
+# Security checks for the fixed Pocket Notes app on every pull request and push to main.
+# Stages run cheapest first, so a failing test stops the pipeline before the slower scans.
+name: security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: fixed
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: fixed/package-lock.json
+
+      - name: Install exactly what the lockfile says, without install scripts
+        run: npm ci --ignore-scripts
+
+      - name: Security regression tests
+        run: node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit.xml
+
+      - name: Dependency audit (production, high and critical fail the build)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Set up Python for Semgrep
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Static analysis with the project's Semgrep rules
+        run: |
+          python -m pip install semgrep
+          semgrep scan --config ../semgrep/pocket-notes.yaml --metrics=off --error --sarif --output ../semgrep.sarif src/
+
+      - name: Start the app on the runner's loopback address
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY_TEST }}
+          ALLOWED_ORIGINS: http://localhost:18402
+        run: |
+          node src/server.js > ../app.log 2>&1 &
+          for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:18402/login && break; sleep 1; done
+
+      - name: ZAP baseline scan with the project's rule config
+        working-directory: zap
+        run: |
+          mkdir -p reports
+          chmod a+w . reports
+          docker run --rm --network host -v "$PWD:/zap/wrk/:rw" zaproxy/zap-stable \
+            zap-baseline.py -t http://127.0.0.1:18402 -z -silent -c baseline-fixed.conf -r reports/baseline.html
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: security-reports
+          path: |
+            fixed/junit.xml
+            semgrep.sarif
+            zap/reports/
+            app.log
